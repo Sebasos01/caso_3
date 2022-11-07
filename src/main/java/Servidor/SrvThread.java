@@ -1,4 +1,4 @@
-package seguridad20222_servidor;
+package Servidor;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -11,7 +11,6 @@ import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
-import java.util.Random;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
@@ -29,7 +28,7 @@ public class SrvThread extends Thread{
 	private SecurityFunctions f;	
 	private int mod;
 
-	SrvThread (Socket csP, int idP, int modP) {
+	public SrvThread(Socket csP, int idP, int modP) {
 		sc = csP;
 		dlg = new String("concurrent server " + idP + ": ");
 		id = idP;

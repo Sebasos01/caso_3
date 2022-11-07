@@ -1,4 +1,4 @@
-package seguridad20222_servidor;
+package Servidor;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -45,9 +45,8 @@ public class ServidorMain {
 					break;
 				}
 			}
-
-			try { 
-				// Crea un delegado por cliente. Atiende por conexion. 
+			try {
+				// Crea un delegado por cliente. Atiende por conexion.
 				//semaforo.acquire();
 				Socket sc = ss.accept();
 				System.out.println(ID + " delegate " + idThread + ": accepting client - done");
