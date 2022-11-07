@@ -2,5 +2,3 @@
 .idea/.gitignore
 pom.xml
 target/
-datos_asim_srv.pri
-datos_asim_srv.pub
