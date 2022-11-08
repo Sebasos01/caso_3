@@ -17,11 +17,11 @@ public class ThreadClient implements Runnable {
     private final int id, idPaquete;
     private final String name;
 
-    public ThreadClient(String server, int port, int idThread, String nameClient, int idPack) throws IOException {
+    public ThreadClient(Socket s, int idThread, String nameClient, int idPack) throws IOException {
         id = idThread;
         name = nameClient;
         idPaquete = idPack;
-        socket = new Socket(server, port);
+        socket = s;
         output = new PrintWriter(socket.getOutputStream(), true);
         input = new Scanner(new InputStreamReader(socket.getInputStream()));
         userInput = new Scanner(System.in);
@@ -39,7 +39,13 @@ public class ThreadClient implements Runnable {
         try {
             String msg = id + "_" + name + "_" + idPaquete;
             Log.log("Inicio ", msg);
-            ProtocolClient.procesate(userInput, input, output);
+
+            String gValue;
+            while ((gValue= input.nextLine()) != null){
+                System.out.println(gValue);
+            }
+            System.out.println(gValue);
+
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
