@@ -13,30 +13,30 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
 public class SecurityFunctions {
-    private final String algoritmo_simetrico = "AES/CBC/PKCS5Padding";
-    private final String algoritmo_asimetrico = "RSA";
+    private static final String algoritmo_simetrico = "AES/CBC/PKCS5Padding";
+    private static final String algoritmo_asimetrico = "RSA";
 
-    public byte[] sign(PrivateKey privada, String mensaje) throws Exception {
+    public static byte[] sign(PrivateKey privada, String mensaje) throws Exception {
         Signature privateSignature = Signature.getInstance("SHA256withRSA");
         privateSignature.initSign(privada);
         privateSignature.update(mensaje.getBytes(StandardCharsets.UTF_8));
-		return privateSignature.sign();
+        return privateSignature.sign();
     }
 
-    public boolean checkSignature(PublicKey publica, byte[] firma, String mensaje) throws Exception {
+    public static boolean checkSignature(PublicKey publica, byte[] firma, String mensaje) throws Exception {
         Signature publicSignature = Signature.getInstance("SHA256withRSA");
         publicSignature.initVerify(publica);
         publicSignature.update(mensaje.getBytes(StandardCharsets.UTF_8));
-		return publicSignature.verify(firma);
+        return publicSignature.verify(firma);
     }
 
-    public byte[] aenc(PublicKey publica, String mensaje) throws Exception {
+    public static byte[] aenc(PublicKey publica, String mensaje) throws Exception {
         Cipher encryptCipher = Cipher.getInstance(algoritmo_asimetrico);
         encryptCipher.init(Cipher.ENCRYPT_MODE, publica);
-		return encryptCipher.doFinal(mensaje.getBytes());
+        return encryptCipher.doFinal(mensaje.getBytes());
     }
 
-    public String adec(byte[] cifrado, PrivateKey privada) throws Exception {
+    public static String adec(byte[] cifrado, PrivateKey privada) throws Exception {
         Cipher decriptCipher = Cipher.getInstance(algoritmo_asimetrico);
         decriptCipher.init(Cipher.DECRYPT_MODE, privada);
         String decipheredMessage = new String(decriptCipher.doFinal(cifrado), StandardCharsets.UTF_8);
@@ -44,13 +44,13 @@ public class SecurityFunctions {
         return decipheredMessage;
     }
 
-    public byte[] hmac(byte[] msg, SecretKey key) throws Exception {
+    public static byte[] hmac(byte[] msg, SecretKey key) throws Exception {
         Mac mac = Mac.getInstance("HMACSHA256");
         mac.init(key);
-		return mac.doFinal(msg);
+        return mac.doFinal(msg);
     }
 
-    public boolean checkInt(byte[] msg, SecretKey key, byte[] hash) throws Exception {
+    public static boolean checkInt(byte[] msg, SecretKey key, byte[] hash) throws Exception {
         byte[] nuevo = hmac(msg, key);
         if (nuevo.length != hash.length) {
             return false;
@@ -61,25 +61,25 @@ public class SecurityFunctions {
         return true;
     }
 
-    public SecretKey csk1(String semilla) throws Exception {
+    public static SecretKey csk1(String semilla) throws Exception {
         byte[] byte_semilla = semilla.trim().getBytes(StandardCharsets.UTF_8);
         MessageDigest digest = MessageDigest.getInstance("SHA-512");
         byte[] encodedhash = digest.digest(byte_semilla);
         byte[] encoded1 = new byte[32];
-		System.arraycopy(encodedhash, 0, encoded1, 0, 32);
-		return new SecretKeySpec(encoded1, "AES");
+        System.arraycopy(encodedhash, 0, encoded1, 0, 32);
+        return new SecretKeySpec(encoded1, "AES");
     }
 
-    public SecretKey csk2(String semilla) throws Exception {
+    public static SecretKey csk2(String semilla) throws Exception {
         byte[] byte_semilla = semilla.trim().getBytes(StandardCharsets.UTF_8);
         MessageDigest digest = MessageDigest.getInstance("SHA-512");
         byte[] encodedhash = digest.digest(byte_semilla);
         byte[] encoded2 = new byte[32];
-		System.arraycopy(encodedhash, 32, encoded2, 0, 32);
-		return new SecretKeySpec(encoded2, "AES");
+        System.arraycopy(encodedhash, 32, encoded2, 0, 32);
+        return new SecretKeySpec(encoded2, "AES");
     }
 
-    public byte[] senc(byte[] msg, SecretKey key, IvParameterSpec iv, String id) throws Exception {
+    public static byte[] senc(byte[] msg, SecretKey key, IvParameterSpec iv, String id) throws Exception {
         Cipher decifrador = Cipher.getInstance(algoritmo_simetrico);
         long start = System.nanoTime();
         decifrador.init(Cipher.ENCRYPT_MODE, key, iv);
@@ -89,13 +89,13 @@ public class SecurityFunctions {
         return tmp;
     }
 
-    public byte[] sdec(byte[] msg, SecretKey key, IvParameterSpec iv) throws Exception {
+    public static byte[] sdec(byte[] msg, SecretKey key, IvParameterSpec iv) throws Exception {
         Cipher decifrador = Cipher.getInstance(algoritmo_simetrico);
         decifrador.init(Cipher.DECRYPT_MODE, key, iv);
         return decifrador.doFinal(msg);
     }
 
-    public PublicKey read_kplus(String nombreArchivo, String id) {
+    public static PublicKey read_kplus(String nombreArchivo, String id) {
         FileInputStream is1;
         PublicKey pubkey = null;
         System.out.println(id + nombreArchivo);
@@ -114,7 +114,7 @@ public class SecurityFunctions {
         return pubkey;
     }
 
-    public PrivateKey read_kmin(String nombreArchivo, String id) {
+    public static PrivateKey read_kmin(String nombreArchivo, String id) {
         PrivateKey privkey = null;
         System.out.println(id + nombreArchivo);
         FileInputStream is2;

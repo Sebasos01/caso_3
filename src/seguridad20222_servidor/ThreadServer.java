@@ -17,10 +17,9 @@ public class ThreadServer extends Thread {
     private final Socket sc;
     private final int id;
     private final String dlg;
+    private final int mod;
     private BigInteger p;
     private BigInteger g;
-    private SecurityFunctions f;
-    private final int mod;
 
     ThreadServer(Socket csP, int idP, int modP) {
         sc = csP;
@@ -35,12 +34,30 @@ public class ThreadServer extends Thread {
         mod = modP;
     }
 
+    public static byte[] str2byte(String ss) {
+        // Encapsulamiento con hexadecimales
+        byte[] ret = new byte[ss.length() / 2];
+        for (int i = 0; i < ret.length; i++) {
+            ret[i] = (byte) Integer.parseInt(ss.substring(i * 2, (i + 1) * 2), 16);
+        }
+        return ret;
+    }
+
+    public static String byte2str(byte[] b) {
+        // Encapsulamiento con hexadecimales
+        String ret = "";
+        for (byte value : b) {
+            String g = Integer.toHexString(((char) value) & 0x00ff);
+            ret += (g.length() == 1 ? "0" : "") + g;
+        }
+        return ret;
+    }
+
     public void run() {
 
         boolean exito = true;
         String linea;
         System.out.println(dlg + "starting.");
-        f = new SecurityFunctions();
 
         if (mod == 0) {
             System.out.println("Running test 0.");
@@ -52,8 +69,8 @@ public class ThreadServer extends Thread {
 
         try {
 
-            PrivateKey privadaServidor = f.read_kmin("datos_asim_srv.pri", dlg);
-            PublicKey publicaServidor = f.read_kplus("datos_asim_srv.pub", dlg);
+            PrivateKey privadaServidor = SecurityFunctions.read_kmin("datos_asim_srv.pri", dlg);
+            PublicKey publicaServidor = SecurityFunctions.read_kplus("datos_asim_srv.pub", dlg);
             DataOutputStream ac = new DataOutputStream(sc.getOutputStream());
             DataInputStream dc = new DataInputStream(sc.getInputStream());
             linea = dc.readUTF();
@@ -67,6 +84,9 @@ public class ThreadServer extends Thread {
             BigInteger valor_comun = G2X(g, bix, p);
             String str_valor_comun = valor_comun.toString();
             System.out.println(dlg + "G2X: " + str_valor_comun);
+
+            /*Send public key*/
+            ac.writeUTF("datos_asim_srv.pub");
 
             // sending G, P y G^x
             ac.writeUTF(g.toString());
@@ -89,7 +109,6 @@ public class ThreadServer extends Thread {
 
     }
 
-
     private boolean opt0(String str_valor_comun, DataOutputStream ac, DataInputStream dc) throws Exception {
         // option 0: signing verification should not check
         // we generate the error on purpose
@@ -99,7 +118,7 @@ public class ThreadServer extends Thread {
         //
         // ERROR: -> signing with a different private key
         //
-        byte[] byte_authentication = f.sign(privadaError, msj);
+        byte[] byte_authentication = SecurityFunctions.sign(privadaError, msj);
         String str_authentication = byte2str(byte_authentication);
         ac.writeUTF(str_authentication);
         linea = dc.readUTF();
@@ -122,7 +141,7 @@ public class ThreadServer extends Thread {
         // we generate the error on purpose
         boolean exito = true;
         String msj = g.toString() + "," + p.toString() + "," + str_valor_comun;
-        byte[] byte_authentication = f.sign(privadaServidor, msj);
+        byte[] byte_authentication = SecurityFunctions.sign(privadaServidor, msj);
         String str_authentication = byte2str(byte_authentication);
         ac.writeUTF(str_authentication);
         linea = dc.readUTF();
@@ -144,8 +163,8 @@ public class ThreadServer extends Thread {
             System.out.println(dlg + " llave maestra: " + str_llave);
 
             // generating symmetric key
-            SecretKey sk_srv = f.csk1(str_llave);
-            SecretKey sk_mac = f.csk2(str_llave);
+            SecretKey sk_srv = SecurityFunctions.csk1(str_llave);
+            SecretKey sk_mac = SecurityFunctions.csk2(str_llave);
 
             String str_consulta = dc.readUTF();
             String str_mac = dc.readUTF();
@@ -158,8 +177,8 @@ public class ThreadServer extends Thread {
 
             byte[] iv1 = str2byte(str_iv1);
             IvParameterSpec ivSpec1 = new IvParameterSpec(iv1);
-            byte[] descifrado = f.sdec(byte_consulta, sk_srv, ivSpec1);
-            boolean verificar = f.checkInt(descifrado, sk_mac, byte_mac);
+            byte[] descifrado = SecurityFunctions.sdec(byte_consulta, sk_srv, ivSpec1);
+            boolean verificar = SecurityFunctions.checkInt(descifrado, sk_mac, byte_mac);
             System.out.println(dlg + "Integrity check:" + verificar);
 
             if (verificar) {
@@ -181,9 +200,9 @@ public class ThreadServer extends Thread {
                 byte[] iv2 = generateIvBytes();
                 String str_iv2 = byte2str(iv2);
                 IvParameterSpec ivSpec2 = new IvParameterSpec(iv2);
-                SecretKey sk_srv2 = f.csk1(str_llave2);
-                byte[] rta_consulta = f.senc(byte_valor, sk_srv, ivSpec2, "Servidor");
-                byte[] rta_mac = f.hmac(byte_valor, sk_srv2);
+                SecretKey sk_srv2 = SecurityFunctions.csk1(str_llave2);
+                byte[] rta_consulta = SecurityFunctions.senc(byte_valor, sk_srv, ivSpec2, "Servidor");
+                byte[] rta_mac = SecurityFunctions.hmac(byte_valor, sk_srv2);
                 String m1 = byte2str(rta_consulta);
                 String m2 = byte2str(rta_mac);
                 ac.writeUTF("OK");
@@ -217,7 +236,7 @@ public class ThreadServer extends Thread {
         // answer integrity should also check
         boolean exito = true;
         String msj = g.toString() + "," + p.toString() + "," + str_valor_comun;
-        byte[] byte_authentication = f.sign(privadaServidor, msj);
+        byte[] byte_authentication = SecurityFunctions.sign(privadaServidor, msj);
         String str_authentication = byte2str(byte_authentication);
         ac.writeUTF(str_authentication);
         linea = dc.readUTF();
@@ -239,8 +258,8 @@ public class ThreadServer extends Thread {
             System.out.println(dlg + " llave maestra: " + str_llave);
 
             // generating symmetric key
-            SecretKey sk_srv = f.csk1(str_llave);
-            SecretKey sk_mac = f.csk2(str_llave);
+            SecretKey sk_srv = SecurityFunctions.csk1(str_llave);
+            SecretKey sk_mac = SecurityFunctions.csk2(str_llave);
 
             String str_consulta = dc.readUTF();
             String str_mac = dc.readUTF();
@@ -250,8 +269,8 @@ public class ThreadServer extends Thread {
 
             byte[] iv1 = str2byte(str_iv1);
             IvParameterSpec ivSpec1 = new IvParameterSpec(iv1);
-            byte[] descifrado = f.sdec(byte_consulta, sk_srv, ivSpec1);
-            boolean verificar = f.checkInt(descifrado, sk_mac, byte_mac);
+            byte[] descifrado = SecurityFunctions.sdec(byte_consulta, sk_srv, ivSpec1);
+            boolean verificar = SecurityFunctions.checkInt(descifrado, sk_mac, byte_mac);
             System.out.println(dlg + "Integrity check:" + verificar);
 
             if (verificar) {
@@ -267,8 +286,8 @@ public class ThreadServer extends Thread {
                 String str_iv2 = byte2str(iv2);
                 IvParameterSpec ivSpec2 = new IvParameterSpec(iv2);
 
-                byte[] rta_consulta = f.senc(byte_valor, sk_srv, ivSpec2, "Servidor");
-                byte[] rta_mac = f.hmac(byte_valor, sk_mac);
+                byte[] rta_consulta = SecurityFunctions.senc(byte_valor, sk_srv, ivSpec2, "Servidor");
+                byte[] rta_mac = SecurityFunctions.hmac(byte_valor, sk_mac);
                 String m1 = byte2str(rta_consulta);
                 String m2 = byte2str(rta_mac);
                 ac.writeUTF("OK");
@@ -293,25 +312,6 @@ public class ThreadServer extends Thread {
             }
         }
         return exito;
-    }
-
-    public byte[] str2byte(String ss) {
-        // Encapsulamiento con hexadecimales
-        byte[] ret = new byte[ss.length() / 2];
-        for (int i = 0; i < ret.length; i++) {
-            ret[i] = (byte) Integer.parseInt(ss.substring(i * 2, (i + 1) * 2), 16);
-        }
-        return ret;
-    }
-
-    public String byte2str(byte[] b) {
-        // Encapsulamiento con hexadecimales
-        String ret = "";
-        for (byte value : b) {
-            String g = Integer.toHexString(((char) value) & 0x00ff);
-            ret += (g.length() == 1 ? "0" : "") + g;
-        }
-        return ret;
     }
 
     private void generateGandP() {
