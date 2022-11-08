@@ -15,7 +15,7 @@ public class ThreadServer extends Thread {
     // constantes
 
     // Atributos
-    private Socket sc = null;
+    private Socket sc;
     private int id;
     private String dlg;
     private BigInteger p;
@@ -25,7 +25,7 @@ public class ThreadServer extends Thread {
 
     ThreadServer(Socket csP, int idP, int modP) {
         sc = csP;
-        dlg = new String("concurrent server " + idP + ": ");
+        dlg = "concurrent server " + idP + ": ";
         id = idP;
         /*
          *  Concurrent servers run in one of three modes:
@@ -311,8 +311,8 @@ public class ThreadServer extends Thread {
     public String byte2str(byte[] b) {
         // Encapsulamiento con hexadecimales
         String ret = "";
-        for (int i = 0; i < b.length; i++) {
-            String g = Integer.toHexString(((char) b[i]) & 0x00ff);
+        for (byte value : b) {
+            String g = Integer.toHexString(((char) value) & 0x00ff);
             ret += (g.length() == 1 ? "0" : "") + g;
         }
         return ret;

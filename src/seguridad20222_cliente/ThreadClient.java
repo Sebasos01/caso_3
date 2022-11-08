@@ -1,6 +1,6 @@
 package seguridad20222_cliente;
 
-import seguridad20222_servidor.MainServer;
+import utility.Log;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -12,7 +12,7 @@ public class ThreadClient implements Runnable {
 
     private final Socket socket;
     private final PrintWriter output;
-    private final Scanner input;
+    private final Scanner input, userInput;
 
     private final int id, idPaquete;
     private final String name;
@@ -24,35 +24,26 @@ public class ThreadClient implements Runnable {
         socket = new Socket(server, port);
         output = new PrintWriter(socket.getOutputStream(), true);
         input = new Scanner(new InputStreamReader(socket.getInputStream()));
+        userInput = new Scanner(System.in);
     }
 
     @Override public void run() {
         try {
-            String msg = id + "_" + name + "_" + idPaquete;
-            MainClient.log("Inicio", msg);
-
-            String cyphered, decyphered;
-
-            /*Start*/
-            MainClient.secureinit();
-
-
-        } catch (Exception e) {
+            execute();
+        } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            try {
-                socket.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
     }
 
-    private String parse(byte[] arr) {
-        return new String(arr);
-    }
-
-    private byte[] parse(String str) {
-        return str.getBytes();
+    private void execute() throws IOException {
+        try {
+            String msg = id + "_" + name + "_" + idPaquete;
+            Log.log("Inicio ", msg);
+            ProtocolClient.procesate(userInput, input, output);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            socket.close();
+        }
     }
 }
