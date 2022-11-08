@@ -2,9 +2,8 @@ package seguridad20222_servidor;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.math.BigInteger;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -15,13 +14,13 @@ public class ThreadServer extends Thread {
     // constantes
 
     // Atributos
-    private Socket sc;
-    private int id;
-    private String dlg;
+    private final Socket sc;
+    private final int id;
+    private final String dlg;
     private BigInteger p;
     private BigInteger g;
     private SecurityFunctions f;
-    private int mod;
+    private final int mod;
 
     ThreadServer(Socket csP, int idP, int modP) {
         sc = csP;
@@ -55,25 +54,24 @@ public class ThreadServer extends Thread {
 
             PrivateKey privadaServidor = f.read_kmin("datos_asim_srv.pri", dlg);
             PublicKey publicaServidor = f.read_kplus("datos_asim_srv.pub", dlg);
-            PrintWriter ac = new PrintWriter(sc.getOutputStream(), true);
-            BufferedReader dc = new BufferedReader(new InputStreamReader(sc.getInputStream()));
-
-            linea = dc.readLine();
+            DataOutputStream ac = new DataOutputStream(sc.getOutputStream());
+            DataInputStream dc = new DataInputStream(sc.getInputStream());
+            linea = dc.readUTF();
             System.out.println(dlg + "reading request: " + linea);
 
             generateGandP();
             SecureRandom r = new SecureRandom();
 
-			long longx = Math.abs(r.nextInt());
+            long longx = Math.abs(r.nextInt());
             BigInteger bix = BigInteger.valueOf(longx);
             BigInteger valor_comun = G2X(g, bix, p);
             String str_valor_comun = valor_comun.toString();
             System.out.println(dlg + "G2X: " + str_valor_comun);
 
             // sending G, P y G^x
-            ac.println(g.toString());
-            ac.println(p.toString());
-            ac.println(str_valor_comun);
+            ac.writeUTF(g.toString());
+            ac.writeUTF(p.toString());
+            ac.writeUTF(str_valor_comun);
 
             if (mod == 0) {
                 exito = opt0(str_valor_comun, ac, dc);
@@ -82,10 +80,8 @@ public class ThreadServer extends Thread {
             } else if (mod == 2) {
                 exito = opt2(str_valor_comun, ac, dc, bix, privadaServidor);
             }
-            if (exito)
-                System.out.println(dlg + "Finishing test: passed.");
-            else
-                System.out.println(dlg + "Finishing test: failed.");
+            if (exito) System.out.println(dlg + "Finishing test: passed.");
+            else System.out.println(dlg + "Finishing test: failed.");
             sc.close();
         } catch (Exception e) {
             e.printStackTrace();
@@ -94,7 +90,7 @@ public class ThreadServer extends Thread {
     }
 
 
-    private boolean opt0(String str_valor_comun, PrintWriter ac, BufferedReader dc) throws Exception {
+    private boolean opt0(String str_valor_comun, DataOutputStream ac, DataInputStream dc) throws Exception {
         // option 0: signing verification should not check
         // we generate the error on purpose
         String linea;
@@ -105,8 +101,8 @@ public class ThreadServer extends Thread {
         //
         byte[] byte_authentication = f.sign(privadaError, msj);
         String str_authentication = byte2str(byte_authentication);
-        ac.println(str_authentication);
-        linea = dc.readLine();
+        ac.writeUTF(str_authentication);
+        linea = dc.readUTF();
         boolean exito;
         if (linea.compareTo("ERROR") == 0) {
             System.out.println("==========> Test 0: passed (Server sends wrong signature).");
@@ -118,8 +114,8 @@ public class ThreadServer extends Thread {
         return exito;
     }
 
-    private boolean opt1(String str_valor_comun, PrintWriter ac, BufferedReader dc,
-            BigInteger bix, PrivateKey privadaServidor) throws Exception {
+    private boolean opt1(String str_valor_comun, DataOutputStream ac, DataInputStream dc, BigInteger bix,
+            PrivateKey privadaServidor) throws Exception {
         String linea;
         // option 1: signing verification should be ok but
         // answer integrity check should fail
@@ -128,8 +124,8 @@ public class ThreadServer extends Thread {
         String msj = g.toString() + "," + p.toString() + "," + str_valor_comun;
         byte[] byte_authentication = f.sign(privadaServidor, msj);
         String str_authentication = byte2str(byte_authentication);
-        ac.println(str_authentication);
-        linea = dc.readLine();
+        ac.writeUTF(str_authentication);
+        linea = dc.readUTF();
 
         if (linea.compareTo("ERROR") == 0) {
             exito = false;
@@ -139,7 +135,7 @@ public class ThreadServer extends Thread {
             // Signature is right; server should receive "OK"
             System.out.println("==========> Test 1a: passed (Server sends right signature).");
             // receiving G^y
-            linea = dc.readLine();
+            linea = dc.readUTF();
 
             // computing (G^y)^x mod N
             BigInteger g2y = new BigInteger(linea);
@@ -151,9 +147,9 @@ public class ThreadServer extends Thread {
             SecretKey sk_srv = f.csk1(str_llave);
             SecretKey sk_mac = f.csk2(str_llave);
 
-            String str_consulta = dc.readLine();
-            String str_mac = dc.readLine();
-            String str_iv1 = dc.readLine();
+            String str_consulta = dc.readUTF();
+            String str_mac = dc.readUTF();
+            String str_iv1 = dc.readUTF();
             byte[] byte_consulta = str2byte(str_consulta);
             byte[] byte_mac = str2byte(str_mac);
 
@@ -177,7 +173,7 @@ public class ThreadServer extends Thread {
                 //
                 // ERROR: -> generating MAC with a wrong key
                 //
-                String str_llave2 = String.valueOf(str_llave);
+                String str_llave2 = str_llave;
                 str_llave2 += "1";
                 System.out.println(str_llave);
                 System.out.println("vs");
@@ -190,12 +186,12 @@ public class ThreadServer extends Thread {
                 byte[] rta_mac = f.hmac(byte_valor, sk_srv2);
                 String m1 = byte2str(rta_consulta);
                 String m2 = byte2str(rta_mac);
-                ac.println("OK");
-                ac.println(m1);
-                ac.println(m2);
-                ac.println(str_iv2);
+                ac.writeUTF("OK");
+                ac.writeUTF(m1);
+                ac.writeUTF(m2);
+                ac.writeUTF(str_iv2);
 
-                linea = dc.readLine();
+                linea = dc.readUTF();
                 if (linea.compareTo("ERROR") == 0) {
                     // MAC is not right, Client should send "ERROR".
                     System.out.println("==========> Test 1c: passed (server sends not matching query and MAC).");
@@ -206,7 +202,7 @@ public class ThreadServer extends Thread {
             } else {
                 // In this case, a client sends query and MAC that do not check
                 String mensaje = "ERROR";
-                ac.println(mensaje);
+                ac.writeUTF(mensaje);
                 System.out.println("==========> Test 1b: failed (Client sends not matching query and MAC).");
                 exito = false;
             }
@@ -214,8 +210,8 @@ public class ThreadServer extends Thread {
         return exito;
     }
 
-    private boolean opt2(String str_valor_comun, PrintWriter ac, BufferedReader dc,
-            BigInteger bix, PrivateKey privadaServidor) throws Exception {
+    private boolean opt2(String str_valor_comun, DataOutputStream ac, DataInputStream dc, BigInteger bix,
+            PrivateKey privadaServidor) throws Exception {
         String linea;
         // option 2: signing verification should check and
         // answer integrity should also check
@@ -223,8 +219,8 @@ public class ThreadServer extends Thread {
         String msj = g.toString() + "," + p.toString() + "," + str_valor_comun;
         byte[] byte_authentication = f.sign(privadaServidor, msj);
         String str_authentication = byte2str(byte_authentication);
-        ac.println(str_authentication);
-        linea = dc.readLine();
+        ac.writeUTF(str_authentication);
+        linea = dc.readUTF();
 
         if (linea.compareTo("ERROR") == 0) {
             System.out.println("==========> Test 2a: failed (Server sends right signature).");
@@ -234,7 +230,7 @@ public class ThreadServer extends Thread {
             System.out.println("==========> Test 2a: passed (Server sends right signature).");
 
             // receiving G^y
-            linea = dc.readLine();
+            linea = dc.readUTF();
 
             // computing (G^y)^x mod N
             BigInteger g2y = new BigInteger(linea);
@@ -246,9 +242,9 @@ public class ThreadServer extends Thread {
             SecretKey sk_srv = f.csk1(str_llave);
             SecretKey sk_mac = f.csk2(str_llave);
 
-            String str_consulta = dc.readLine();
-            String str_mac = dc.readLine();
-            String str_iv1 = dc.readLine();
+            String str_consulta = dc.readUTF();
+            String str_mac = dc.readUTF();
+            String str_iv1 = dc.readUTF();
             byte[] byte_consulta = str2byte(str_consulta);
             byte[] byte_mac = str2byte(str_mac);
 
@@ -275,12 +271,12 @@ public class ThreadServer extends Thread {
                 byte[] rta_mac = f.hmac(byte_valor, sk_mac);
                 String m1 = byte2str(rta_consulta);
                 String m2 = byte2str(rta_mac);
-                ac.println("OK");
-                ac.println(m1);
-                ac.println(m2);
-                ac.println(str_iv2);
+                ac.writeUTF("OK");
+                ac.writeUTF(m1);
+                ac.writeUTF(m2);
+                ac.writeUTF(str_iv2);
 
-                linea = dc.readLine();
+                linea = dc.readUTF();
                 if (linea.compareTo("OK") == 0) {
                     System.out.println("==========> Test 2c: passed (server sends matching query and MAC).");
                 } else if (linea.compareTo("ERROR") == 0) {
@@ -291,7 +287,7 @@ public class ThreadServer extends Thread {
             } else {
                 // In this case, a client send query and MAC that do not check
                 String mensaje = "ERROR";
-                ac.println(mensaje);
+                ac.writeUTF(mensaje);
                 System.out.println("==========> Test 2b: failed (Client sends not matching query and MAC).");
                 exito = false;
             }

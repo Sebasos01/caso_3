@@ -2,17 +2,19 @@ package seguridad20222_cliente;
 
 import utility.Log;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.math.BigInteger;
 import java.net.Socket;
-import java.util.Scanner;
+import java.security.SecureRandom;
 
 public class ThreadClient implements Runnable {
 
     private final Socket socket;
-    private final PrintWriter output;
-    private final Scanner input, userInput;
+    private final DataOutputStream output;
+    private final DataInputStream input;
+    //private final Scanner userInput;
 
     private final int id, idPaquete;
     private final String name;
@@ -22,9 +24,9 @@ public class ThreadClient implements Runnable {
         name = nameClient;
         idPaquete = idPack;
         socket = s;
-        output = new PrintWriter(socket.getOutputStream(), true);
-        input = new Scanner(new InputStreamReader(socket.getInputStream()));
-        userInput = new Scanner(System.in);
+        output = new DataOutputStream(socket.getOutputStream());
+        input = new DataInputStream(socket.getInputStream());
+        //userInput = new Scanner(System.in);
     }
 
     @Override public void run() {
@@ -37,19 +39,48 @@ public class ThreadClient implements Runnable {
 
     private void execute() throws IOException {
         try {
+            String g, p, gx, f, gy;
+            BigInteger gVal, pVal, gXVal, gYVal;
+
             String msg = id + "_" + name + "_" + idPaquete;
             Log.log("Inicio ", msg);
 
-            String gValue;
-            while ((gValue= input.nextLine()) != null){
-                System.out.println(gValue);
-            }
-            System.out.println(gValue);
+            /*Start*/
+            output.writeUTF("");
+            g = input.readUTF();
+            p = input.readUTF();
+            gx = input.readUTF();
+            f = input.readUTF();
+
+            gVal = BigInteger.valueOf(Long.parseLong(g));
+            pVal = BigInteger.valueOf(Long.parseLong(p));
+            gXVal = BigInteger.valueOf(Long.parseLong(gx));
+
+            /*Verification*/
+            boolean v = verify(f, g, p, gx);
+            /*Returning*/
+            if (v) output.writeUTF("OK");
+            else output.writeUTF("ERROR");
+            /*gValY*/
+            BigInteger bigy = BigInteger.valueOf(Math.abs(new SecureRandom().nextInt()));
+            gYVal = G2Y(gVal, bigy, pVal);
+            /*Sent g^y*/
+            output.writeUTF(gYVal.toString());
+            /*MasterKey*/
+
 
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
             socket.close();
         }
+    }
+
+    private boolean verify(String sign, String gVal, String prime, String gValX) {
+        return false;
+    }
+
+    private BigInteger G2Y(BigInteger base, BigInteger exponente, BigInteger modulo) {
+        return base.modPow(exponente, modulo);
     }
 }
