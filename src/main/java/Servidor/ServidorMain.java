@@ -6,57 +6,43 @@ import java.net.Socket;
 import java.util.Random;
 
 public class ServidorMain {
-	
-	private static ServerSocket ss;	
-	private static final String ID = "Main Server: ";
-	private static int puerto = 4030;
+
+	private static final String ID = "Servidor principal: ";
+	private static final int puerto = 4030;
+	private static final String NOMBRE_DEFAULT = "Servidor concurrente";
 
 	public static void main(String[] args) throws IOException {
-		
-		System.out.println(ID + "Starting main server. Port: " + puerto);
-		
+		System.out.println(ID + "iniciando servidor principal -> puerto: " + puerto);
 		int idThread = 0;
-		ss = new ServerSocket(puerto);
-		System.out.println(ID + "Creating socket: done");
-		String options = "210";
-		
+		ServerSocket socketServidor = new ServerSocket(puerto);
+		System.out.println(ID + "creando socket -> completado");
+		String pruebas = "210";
+
 		while (true) {
-		    Random optRandom = new Random();
-			int opt = optRandom.nextInt()%6;
-			if (idThread%3==0) {
-				switch (opt) {
-				case 0:
-					options = "012";
-					break;
-				case 1:
-					options = "021";
-					break;
-				case 2: 
-					options = "102";
-					break;
-				case 3:
-					options = "120";
-					break;
-				case 4:
-					options = "201";
-					break;
-				default:
-					options = "210";
-					break;
-				}
+			Random random = new Random();
+			int opcion = Math.abs(random.nextInt()) % 6;
+			if (idThread % 3 == 0) {
+				pruebas =
+						switch (opcion) {
+							case 0 -> "012";
+							case 1 -> "021";
+							case 2 -> "102";
+							case 3 -> "120";
+							case 4 -> "201";
+							default -> "210";
+						};
 			}
 			try {
 				// Crea un delegado por cliente. Atiende por conexion.
-				//semaforo.acquire();
-				Socket sc = ss.accept();
-				System.out.println(ID + " delegate " + idThread + ": accepting client - done");
+				Socket socket = socketServidor.accept();
+				System.out.println(ID + "Delegado " + idThread + " -> aceptando cliente -> completado");
 				int pos = idThread % 3;
-				int mod = options.charAt(pos) - '0';
-				SrvThread d = new SrvThread(sc,idThread,mod);
+				int modo = pruebas.charAt(pos) - '0';
+				ServidorThread delegado = new ServidorThread(modo, socket, idThread, NOMBRE_DEFAULT);
 				idThread++;
-				d.start();
-			} catch (IOException e) {
-				System.out.println(ID + " delegate " + idThread + ": accepting client - ERROR");
+				delegado.start();
+			} catch (Exception e) {
+				System.err.println(ID + " delegado " + idThread + ": aceptando cliente -> ERROR");
 				e.printStackTrace();
 			}
 		}
