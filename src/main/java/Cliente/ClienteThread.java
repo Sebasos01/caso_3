@@ -229,5 +229,4 @@ public class ClienteThread extends Concurrente {
         imprimirInfo("nadie ha modificado la respuesta a la consulta, tiene integridad :)");
         imprimirInfo("la respuesta a la consulta es -> " + verificacion.g);
     }
-
 }

@@ -154,5 +154,4 @@ public class FuncionesDeSeguridad {
         }
         return privkey;
     }
-
 }
