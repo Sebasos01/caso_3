@@ -4,13 +4,13 @@ import java.io.IOException;
 import java.net.Socket;
 
 public class ClienteMain {
-    private final static int CASO = 32;
+    public final static int CASO = 4;
     private final static String HOST = "localhost";
     private final static int PUERTO = 4030;
     private static final String NOMBRE_DEFAULT = "Cliente concurrente";
 
     public static void main(String[] args) {
-        for (int i = 0; i < CASO; i++) {
+        for (int i = 1; i <= CASO; i++) {
             try {
                 ClienteThread nuevoCliente = new ClienteThread(new Socket(HOST, PUERTO), i, NOMBRE_DEFAULT);
                 nuevoCliente.start();
