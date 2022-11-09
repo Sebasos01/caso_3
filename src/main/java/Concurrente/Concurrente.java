@@ -18,13 +18,13 @@ public class Concurrente extends Thread {
     protected final int ID;
     protected final String MENSAJE_DEFECTO;
     protected final FuncionesDeSeguridad FNS_SEGURIDAD;
+    protected final String MENSAJE_OK = "OK";
+    protected final String MENSAJE_ERROR = "ERROR";
+    protected final String INICIO_SEGURO = "SECURE_INIT";
     protected PrintWriter canalEscritura;
     protected BufferedReader canalLectura;
     protected SecretKey llaveCifrado;
     protected SecretKey llaveHMAC;
-    protected final String MENSAJE_OK = "OK";
-    protected final String MENSAJE_ERROR = "ERROR";
-    protected final String INICIO_SEGURO = "SECURE_INIT";
 
     public Concurrente(Socket socket, int id, String nombre) {
         SOCKET = socket;
@@ -45,7 +45,7 @@ public class Concurrente extends Thread {
     protected String byte2HexaStr(byte[] b) {
         // Encapsulamiento con hexadecimales
         StringBuilder texto = new StringBuilder();
-        for (byte value: b) {
+        for (byte value : b) {
             String g = Integer.toHexString(((char) value) & 0x00ff);
             texto.append(g.length() == 1 ? "0" : "").append(g);
         }
@@ -95,19 +95,21 @@ public class Concurrente extends Thread {
         System.err.printf("%s%s%n", MENSAJE_DEFECTO, error);
     }
 
-    protected static class Pair < T, V > {
+    protected static class Pair<T, V> {
         public T p;
         public V g;
+
         public Pair(T p, V g) {
             this.p = p;
             this.g = g;
         }
     }
 
-    protected static class Tripla < T, V, L > {
+    protected static class Tripla<T, V, L> {
         public T a;
         public V b;
         public L c;
+
         public Tripla(T a, V b, L c) {
             this.a = a;
             this.b = b;
